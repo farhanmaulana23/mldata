@@ -1,0 +1,145 @@
+#load library
+library(raster)
+library(spatstat)
+library(ggplot2)
+library(sp)
+library(gstat)
+library(automap)
+library(rgdal)
+
+BANDUNG<-readOGR(dsn = "Bdg_Dengue_Data_14_16.shp")
+
+
+#load data
+data16 <- read.csv("DATA16R.csv")
+rr <- read.csv("RR.csv")
+coordinates(data16) <- ~XX+YY
+
+#load spatial data
+indo <- raster::getData('GADM', country='IDN', level=2)
+regions <- slot(indo, "polygons")
+regions <- lapply(regions, function(indo) { SpatialPolygons(list(indo)) })
+windows <- lapply(regions, as.owin.SpatialPolygons)
+bandung <- indo[indo$NAME_2 == "Kota Bandung",]
+
+#make grid
+grid <- makegrid(bandung, n=100000)
+colnames(grid) <- c('x', 'y')
+outline <- bandung@polygons[[1]]@Polygons[[1]]@coords
+require(splancs)
+new_grid <- grid[inout(grid, outline), ]
+ggplot(new_grid) + geom_point(aes(x=x, y=y))
+coordinates(new_grid) = ~x + y
+proj4string(aef_inc) <- CRS("+init=epsg:28992")
+
+#idw
+aef_inc <- read.csv("master.csv")
+coordinates(aef_inc) <- ~lang_x+lat_y
+proj4string(aef_inc) <- CRS("+init=epsg:28992")
+spplot(aef_inc, zcol=c("aef_jan", "aef_feb", "aef_mar", "aef_apr", "aef_may", "aef_jun", "aef_jul", "aef_aug", "aef_sep", "aef_oct", "aef_nov", "aef_dec"),main= "Female A. aegypti Incidence")
+
+#variogram
+jan_var <- autofitVariogram(aef_jan~1, aef_inc)
+feb_var <- autofitVariogram(aef_feb~1, aef_inc)
+mar_var <- autofitVariogram(aef_mar~1, aef_inc)
+apr_var <- autofitVariogram(aef_apr~1, aef_inc)
+may_var <- autofitVariogram(aef_may~1, aef_inc)
+jun_var <- autofitVariogram(aef_jun~1, aef_inc)
+jul_var <- autofitVariogram(aef_jul~1, aef_inc)
+aug_var <- autofitVariogram(aef_aug~1, aef_inc)
+sep_var <- autofitVariogram(aef_sep~1, aef_inc)
+oct_var <- autofitVariogram(aef_oct~1, aef_inc)
+nov_var <- autofitVariogram(aef_nov~1, aef_inc)
+dec_var <- autofitVariogram(aef_dec~1, aef_inc)
+
+#idw
+janIDW1 <- idw(formula=aef_jan~1,locations=aef_inc,newdata=new_grid,idp=3)
+febIDW1 <- idw(formula=aef_feb~1,locations=aef_inc,newdata=new_grid,idp=3)
+marIDW1 <- idw(formula=aef_mar~1,locations=aef_inc,newdata=new_grid,idp=3)
+aprIDW1 <- idw(formula=aef_apr~1,locations=aef_inc,newdata=new_grid,idp=3)
+mayIDW1 <- idw(formula=aef_may~1,locations=aef_inc,newdata=new_grid,idp=3)
+junIDW1 <- idw(formula=aef_jun~1,locations=aef_inc,newdata=new_grid,idp=3)
+julIDW1 <- idw(formula=aef_jul~1,locations=aef_inc,newdata=new_grid,idp=3)
+augIDW1 <- idw(formula=aef_aug~1,locations=aef_inc,newdata=new_grid,idp=3)
+sepIDW1 <- idw(formula=aef_sep~1,locations=aef_inc,newdata=new_grid,idp=3)
+octIDW1 <- idw(formula=aef_oct~1,locations=aef_inc,newdata=new_grid,idp=3)
+novIDW1 <- idw(formula=aef_nov~1,locations=aef_inc,newdata=new_grid,idp=3)
+decIDW1 <- idw(formula=aef_dec~1,locations=aef_inc,newdata=new_grid,idp=3)
+
+aefinc.Map<-aef_inc
+janMap<-janIDW1$var1.pred
+febMap<-febIDW1$var1.pred
+marMap<-marIDW1$var1.pred
+aprMap<-aprIDW1$var1.pred
+mayMap<-mayIDW1$var1.pred
+junMap<-junIDW1$var1.pred
+julMap<-julIDW1$var1.pred
+augMap<-augIDW1$var1.pred
+sepMap<-sepIDW1$var1.pred
+octMap<-octIDW1$var1.pred
+novMap<-novIDW1$var1.pred
+decMap<-decIDW1$var1.pred
+
+#visualize
+spplot(janIDW1,"var1.pred") #(Power = 1)
+
+#procrustes
+
+proc.aef <- read.csv("proc_aedesinc.csv", header=TRUE)
+proc.den <- read.csv("proc_denginc.csv", header=TRUE)
+
+pro.ad <- procrustes(proc.aef, proc.den)
+summary(pro.ad)
+plot(pro.ad, main="Procrustes Analysis of Dengue and AeF Incidence")
+
+#scatter plot polynomial regression
+library(ggplot2)
+data <- read.csv("polynomial_regression.csv")
+ggplot(data, aes(x=aefinc17, y=deninc17)) + geom_point()
++ stat_smooth(method="lm", se=TRUE, fill=NA,
+                formula=y ~ poly(x, 2, raw=TRUE),colour="red")
+
+
+ldata$k2 <- factor(ldata$k2)
+ldata$k3 <- factor(ldata$k3)
+ldata$k4 <- factor(ldata$k4)
+ldata$k5 <- factor(ldata$k5)
+ldata$k6 <- factor(ldata$k6)
+ldata$k7 <- factor(ldata$k7)
+ldata$k8 <- factor(ldata$k8)
+ldata$k9 <- factor(ldata$k9)
+ldata$k10 <- factor(ldata$k10)
+ldata$k11 <- factor(ldata$k11)
+ldata$a1 <- factor(ldata$a1)
+ldata$a2 <- factor(ldata$a2)
+ldata$a3 <- factor(ldata$a3)
+ldata$a4 <- factor(ldata$a4)
+ldata$a5 <- factor(ldata$a5)
+ldata$a6 <- factor(ldata$a6)
+ldata$a7 <- factor(ldata$a7)
+
+model <- glm(practice ~ k1 + k2 + k3 + k4 + k5 + k6 + k7 + k8 + k9 + k10 + k11 + a1 + a2 + a3 + a4 + a5 + a6 + a7, data=ldata, family="binomial")
+
+set.seed(123)
+training.samples <- ldata$practice %>% 
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- ldata[training.samples, ]
+test.data <- ldata[-training.samples, ]
+
+x <- model.matrix(practice~., train.data)[,-1]
+y <- ifelse(train.data$practice == "pos", 1, 0)
+
+glmnet(x, y, family = "binomial", alpha = 1, lambda = NULL)
+
+#ordinal multiple logistic regression
+library(MASS)
+mlr <- read.csv("mlr.csv")
+mlr$level <- factor(mlr$level)
+model <- polr(level ~ age + sex + education + occupation, data=mlr)
+summary(model)
+
+#pull OR
+coefs <- coef(model)
+exp(coefs)
+
+pt(5.139, 210-4, lower.tail=FALSE)*2
